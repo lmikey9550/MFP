@@ -76,9 +76,7 @@ func New(cfgPath string, cfg core.AppConfig, hub *state.Hub, logger *log.Logger)
 
 func (s *Service) APIServer() *http.Server {
 	mux := http.NewServeMux()
-	for _, proxyPath := range core.ProxyEndpointPaths() {
-		mux.HandleFunc(proxyPath, s.handleProxy)
-	}
+	mux.HandleFunc("/v1/", s.handleProxy)
 	return &http.Server{
 		Addr:              s.configRuntime.Snapshot().APIListenAddr,
 		Handler:           loggingMiddleware(s.logger, mux),
@@ -140,11 +138,6 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	capability, ok := core.CapabilityForPath(r.URL.Path)
-	if !ok {
-		writeJSONError(w, http.StatusNotFound, "not_found", "unsupported proxy endpoint")
-		return
-	}
 	modelValue := proxyModelValue(payload, form)
 	virtualModelID := normalizeVirtualModelID(modelValue)
 	vm, ok := findVirtualModel(cfg.VirtualModels, virtualModelID)
@@ -161,7 +154,6 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 		VirtualModel: vm.ID,
 		AgentID:      r.Header.Get("X-MFP-Agent-Id"),
 		SessionID:    r.Header.Get("X-MFP-Session-Id"),
-		Capability:   capability,
 	}
 	planner := orchestrator.New(s, s.state)
 	plan, err := planner.Build(vm, route)
@@ -696,7 +688,7 @@ func (s *Service) fetchProviderModels(ctx context.Context, providerCfg core.Prov
 	}
 	models := make([]core.ProviderModel, 0, len(payload.Data))
 	for _, item := range payload.Data {
-		models = append(models, core.ProviderModel{ID: item.ID, Capabilities: core.DefaultModelCapabilities()})
+		models = append(models, core.ProviderModel{ID: item.ID})
 	}
 	return models, nil
 }

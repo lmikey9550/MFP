@@ -61,77 +61,6 @@ const (
 	HealthImpactCredential HealthImpact = "credential"
 )
 
-const (
-	CapabilityChatCompletions      = "chat_completions"
-	CapabilityResponses            = "responses"
-	CapabilityCompletions          = "completions"
-	CapabilityEmbeddings           = "embeddings"
-	CapabilityImageGeneration      = "image_generation"
-	CapabilityImageEdits           = "image_edits"
-	CapabilityAudioTranscriptions  = "audio_transcriptions"
-	CapabilityAudioSpeech          = "audio_speech"
-	CapabilityModerations          = "moderations"
-	CapabilityRerank               = "rerank"
-	CapabilityAnthropicMessages    = "anthropic_messages"
-	CapabilityAnthropicCountTokens = "anthropic_count_tokens"
-	CapabilityStreaming            = "streaming"
-)
-
-var EndpointCapabilities = map[string]string{
-	"/v1/chat/completions":      CapabilityChatCompletions,
-	"/v1/responses":             CapabilityResponses,
-	"/v1/completions":           CapabilityCompletions,
-	"/v1/embeddings":            CapabilityEmbeddings,
-	"/v1/images/generations":    CapabilityImageGeneration,
-	"/v1/images/edits":          CapabilityImageEdits,
-	"/v1/audio/transcriptions":  CapabilityAudioTranscriptions,
-	"/v1/audio/speech":          CapabilityAudioSpeech,
-	"/v1/moderations":           CapabilityModerations,
-	"/v1/rerank":                CapabilityRerank,
-	"/v1/reranks":               CapabilityRerank,
-	"/v1/messages":              CapabilityAnthropicMessages,
-	"/v1/messages/count_tokens": CapabilityAnthropicCountTokens,
-}
-
-func CapabilityForPath(path string) (string, bool) {
-	capability, ok := EndpointCapabilities[path]
-	return capability, ok
-}
-
-func ProxyEndpointPaths() []string {
-	return []string{
-		"/v1/chat/completions",
-		"/v1/responses",
-		"/v1/completions",
-		"/v1/embeddings",
-		"/v1/images/generations",
-		"/v1/images/edits",
-		"/v1/audio/transcriptions",
-		"/v1/audio/speech",
-		"/v1/moderations",
-		"/v1/rerank",
-		"/v1/reranks",
-		"/v1/messages",
-		"/v1/messages/count_tokens",
-	}
-}
-
-func DefaultModelCapabilities() []string {
-	return []string{CapabilityChatCompletions, CapabilityResponses, CapabilityCompletions, CapabilityStreaming}
-}
-
-func HasCapability(capabilities []string, required string) bool {
-	if required == "" || len(capabilities) == 0 {
-		return true
-	}
-	for _, capability := range capabilities {
-		if capability == required {
-			return true
-		}
-	}
-	return false
-}
-
 type AppConfig struct {
 	APIListenAddr     string           `json:"api_listen_addr"`
 	AdminListenAddr   string           `json:"admin_listen_addr"`
@@ -331,7 +260,6 @@ type RouteContext struct {
 	VirtualModel string
 	AgentID      string
 	SessionID    string
-	Capability   string
 }
 
 type RoutePlan struct {

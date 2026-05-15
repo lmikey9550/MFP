@@ -34,10 +34,6 @@ func (p *Planner) Build(vm core.VirtualModel, route core.RouteContext) (core.Rou
 	if len(candidates) == 0 {
 		return core.RoutePlan{}, errors.New("no enabled candidates")
 	}
-	candidates = filterCapability(candidates, route.Capability)
-	if len(candidates) == 0 {
-		return core.RoutePlan{}, fmt.Errorf("no candidates support capability %s", route.Capability)
-	}
 	candidates = orderByStrategy(vm.FailoverStrategy, candidates)
 
 	plan := core.RoutePlan{
@@ -93,16 +89,6 @@ func filterEnabled(in []core.ActualModelRef) []core.ActualModelRef {
 	out := make([]core.ActualModelRef, 0, len(in))
 	for _, item := range in {
 		if item.Enabled {
-			out = append(out, item)
-		}
-	}
-	return out
-}
-
-func filterCapability(in []core.ActualModelRef, required string) []core.ActualModelRef {
-	out := make([]core.ActualModelRef, 0, len(in))
-	for _, item := range in {
-		if core.HasCapability(item.Capabilities, required) {
 			out = append(out, item)
 		}
 	}

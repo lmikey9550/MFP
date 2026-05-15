@@ -199,7 +199,7 @@ func TestProxyForwardsMultipartEndpointWithBackendModel(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "transcribe-model", Enabled: true, MaxRetry: 1, Capabilities: []string{core.CapabilityAudioTranscriptions}}})
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "transcribe-model", Enabled: true, MaxRetry: 1}})
 	hub, err := state.NewHub(cfg.DataDir)
 	if err != nil {
 		t.Fatal(err)
@@ -234,7 +234,7 @@ func TestProxyForwardsMultipartEndpointWithBackendModel(t *testing.T) {
 	}
 }
 
-func TestProxyFiltersCandidatesByEndpointCapability(t *testing.T) {
+func TestProxyIgnoresCapabilitiesAndForwardsByRouteOrder(t *testing.T) {
 	var gotModel string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]any
@@ -248,8 +248,8 @@ func TestProxyFiltersCandidatesByEndpointCapability(t *testing.T) {
 	defer upstream.Close()
 
 	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{
-		{ProviderID: "p1", ModelID: "chat-model", Enabled: true, Priority: 1, MaxRetry: 1, Capabilities: []string{core.CapabilityChatCompletions}},
-		{ProviderID: "p1", ModelID: "embed-model", Enabled: true, Priority: 2, MaxRetry: 1, Capabilities: []string{core.CapabilityEmbeddings}},
+		{ProviderID: "p1", ModelID: "first-model", Enabled: true, Priority: 1, MaxRetry: 1, Capabilities: []string{"chat_only"}},
+		{ProviderID: "p1", ModelID: "second-model", Enabled: true, Priority: 2, MaxRetry: 1, Capabilities: []string{"embeddings"}},
 	})
 	hub, err := state.NewHub(cfg.DataDir)
 	if err != nil {
@@ -261,47 +261,42 @@ func TestProxyFiltersCandidatesByEndpointCapability(t *testing.T) {
 	if rec.Result().StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
 	}
-	if gotModel != "embed-model" {
-		t.Fatalf("expected embed-model, got %s", gotModel)
+	if gotModel != "first-model" {
+		t.Fatalf("expected first route model, got %s", gotModel)
 	}
 }
 
-func TestProxyRejectsUnsupportedCapability(t *testing.T) {
+func TestProxyForwardsUnknownV1PostEndpoint(t *testing.T) {
+	var gotPath string
+	var gotModel string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("upstream should not be called")
-	}))
-	defer upstream.Close()
-
-	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "chat-model", Enabled: true, MaxRetry: 1, Capabilities: []string{core.CapabilityChatCompletions}}})
-	hub, err := state.NewHub(cfg.DataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
-	rec := httptest.NewRecorder()
-	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/embeddings", strings.NewReader(`{"model":"smart","input":"hello"}`)))
-	if rec.Result().StatusCode != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", rec.Result().StatusCode)
-	}
-}
-
-func TestProxyAllowsEmptyCapabilitiesForCompatibility(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		gotModel, _ = payload["model"].(string)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
 	defer upstream.Close()
 
-	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "legacy-model", Enabled: true, MaxRetry: 1}})
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "backend-model", Enabled: true, MaxRetry: 1}})
 	hub, err := state.NewHub(cfg.DataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
 	rec := httptest.NewRecorder()
-	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/embeddings", strings.NewReader(`{"model":"smart","input":"hello"}`)))
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/future/endpoint", strings.NewReader(`{"model":"smart","input":"hello"}`)))
 	if rec.Result().StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
+	}
+	if gotPath != "/v1/future/endpoint" {
+		t.Fatalf("expected future endpoint path, got %s", gotPath)
+	}
+	if gotModel != "backend-model" {
+		t.Fatalf("expected backend-model, got %s", gotModel)
 	}
 }
 
