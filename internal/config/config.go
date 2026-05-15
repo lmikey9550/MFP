@@ -58,7 +58,11 @@ func (m *Manager) Save(cfg core.AppConfig) error {
 	if err := os.WriteFile(tmp, body, 0o644); err != nil {
 		return err
 	}
-	return os.Rename(tmp, m.path)
+	if err := os.Rename(tmp, m.path); err != nil {
+		_ = os.Remove(tmp)
+		return os.WriteFile(m.path, body, 0o644)
+	}
+	return nil
 }
 
 func Validate(cfg core.AppConfig) error {

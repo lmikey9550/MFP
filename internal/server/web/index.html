@@ -12,7 +12,7 @@
       <div class="login-head">
         <div>
           <h1 data-i18n="app.title">MFP 控制台</h1>
-          <p data-i18n="app.subtitle">管理虚拟模型、真实模型、规则和平台设置。</p>
+          <p data-i18n="app.subtitle">管理前端模型、后端模型、规则和平台设置。</p>
         </div>
         <select id="languageSelect" aria-label="Language">
           <option value="zh-CN">中文</option>
@@ -30,7 +30,7 @@
     <header class="topbar">
       <div>
         <h1 data-i18n="app.title">MFP 控制台</h1>
-        <p data-i18n="app.subtitle">管理虚拟模型、真实模型、规则和平台设置。</p>
+        <p data-i18n="app.subtitle">管理前端模型、后端模型、规则和平台设置。</p>
       </div>
       <div class="top-actions">
         <button class="ghost" onclick="reloadConfig()" data-i18n="actions.reloadConfig">重载配置</button>
@@ -42,8 +42,8 @@
 
     <nav class="tabs" aria-label="Admin sections">
       <button class="tab active" data-tab="dashboard" data-i18n="tabs.dashboard">看板</button>
-      <button class="tab" data-tab="virtualModels" data-i18n="tabs.virtualModels">虚拟模型</button>
-      <button class="tab" data-tab="providers" data-i18n="tabs.providers">真实模型</button>
+      <button class="tab" data-tab="virtualModels" data-i18n="tabs.virtualModels">前端模型</button>
+      <button class="tab" data-tab="providers" data-i18n="tabs.providers">后端模型</button>
       <button class="tab" data-tab="rules" data-i18n="tabs.rules">规则设置</button>
       <button class="tab" data-tab="settings" data-i18n="tabs.settings">平台设置</button>
     </nav>
@@ -73,14 +73,14 @@
 
       <section id="tab-virtualModels" class="tab-sheet">
         <section class="panel">
-          <div class="panel-head">
-            <h2 data-i18n="vm.title">虚拟模型</h2>
+          <div class="panel-head inline-head">
+            <h2 data-i18n="vm.title">前端模型</h2>
             <div class="toolbar"><select id="vmSelector" onchange="selectVirtualModel()"></select><button class="ghost" onclick="newVirtualModel()" data-i18n="vm.new">新建</button><button onclick="testVirtualModel()" data-i18n="actions.test">测试</button></div>
           </div>
           <div class="form-grid four">
-            <label><span data-i18n="fields.vmId">虚拟模型 ID</span><small data-i18n="help.vmId">客户端请求中的 model 值。</small><input id="vmId" placeholder="smart"></label>
+            <label><span data-i18n="fields.vmId">前端模型 ID</span><small data-i18n="help.vmId">客户端请求中的 model 值。</small><input id="vmId" placeholder="smart"></label>
             <label><span data-i18n="fields.displayName">显示名称</span><small data-i18n="help.displayName">仅用于管理台展示。</small><input id="vmDisplayName" placeholder="Smart"></label>
-            <label><span data-i18n="fields.vmApiKey">虚拟模型 API Key</span><small data-i18n="help.vmApiKey">客户端调用该虚拟模型时使用。</small><div class="input-actions"><input id="vmApiKey" type="password" autocomplete="off"><button type="button" class="ghost icon-button" onclick="toggleVMApiKey()" title="Show/Hide">👁</button><button type="button" class="icon-button" onclick="copyVMApiKey()" title="Copy">⧉</button></div></label>
+            <label><span data-i18n="fields.vmApiKey">前端模型 API Key</span><small data-i18n="help.vmApiKey">客户端调用该前端模型时使用。</small><div class="input-actions"><input id="vmApiKey" type="password" autocomplete="off"><button type="button" class="ghost icon-button" onclick="toggleVMApiKey()" title="Show/Hide">👁</button><button type="button" class="icon-button" onclick="copyVMApiKey()" title="Copy">⧉</button></div></label>
             <label><span data-i18n="fields.description">描述</span><small data-i18n="help.description">简短说明用途。</small><input id="vmDescription"></label>
           </div>
           <div class="form-grid four">
@@ -98,13 +98,13 @@
           <label><span data-i18n="fields.congestionStrategy">拥塞策略</span><select id="vmCongestionStrategy"><option value="least_loaded">least_loaded</option><option value="round_robin">round_robin</option><option value="random">random</option></select></label>
           <div class="panel-head compact"><h3 data-i18n="vm.candidates">候选模型</h3><button class="ghost" onclick="addCandidateRow()" data-i18n="actions.addCandidate">添加候选</button></div>
           <div class="table-wrap"><table id="vmCandidatesTable" class="mini-table"></table></div>
-          <div class="actions"><button onclick="saveVirtualModel()" data-i18n="actions.saveVM">保存虚拟模型</button><button class="danger" onclick="deleteVirtualModel()" data-i18n="actions.deleteVM">删除</button></div>
+          <div class="actions"><button onclick="saveVirtualModel()" data-i18n="actions.saveVM">保存</button><button class="danger" onclick="deleteVirtualModel()" data-i18n="actions.deleteVM">删除</button></div>
         </section>
       </section>
 
       <section id="tab-providers" class="tab-sheet">
         <section class="panel">
-          <div class="panel-head"><h2 data-i18n="provider.title">真实模型 / Provider</h2><div class="toolbar"><select id="providerSelector" onchange="selectProvider()"></select><button class="ghost" onclick="newProvider()" data-i18n="provider.new">新建</button><button onclick="syncCurrentProviderModels()" data-i18n="actions.syncModels">同步模型</button></div></div>
+          <div class="panel-head inline-head"><h2 data-i18n="provider.title">后端模型</h2><div class="toolbar"><select id="providerSelector" onchange="selectProvider()"></select><button class="ghost" onclick="newProvider()" data-i18n="provider.new">新建</button><button onclick="syncCurrentProviderModels()" data-i18n="actions.syncModels">同步模型</button></div></div>
           <div class="form-grid three">
             <label><span data-i18n="fields.providerId">Provider ID</span><small data-i18n="help.providerId">上游服务的唯一标识。</small><input id="providerId" placeholder="mock-primary"></label>
             <label><span data-i18n="fields.baseUrl">上游地址</span><small data-i18n="help.baseUrl">OpenAI-compatible base URL。</small><input id="providerBaseUrl" placeholder="http://host:4000/v1"></label>
@@ -121,9 +121,9 @@
           <div class="panel-head compact"><h3 data-i18n="provider.discoveredModels">从 /models 获取模型</h3><button class="ghost" onclick="discoverProviderModels()" data-i18n="actions.fetchModels">获取模型列表</button></div>
           <div id="discoveredModels" class="discovery-list"></div>
           <div class="actions"><button class="ghost" onclick="addSelectedDiscoveredModels()" data-i18n="actions.addSelectedModels">添加勾选模型</button></div>
-          <div class="panel-head compact"><h3 data-i18n="provider.models">真实模型清单</h3><button class="ghost" onclick="addProviderModelRow()" data-i18n="actions.addModel">手动添加模型</button></div>
+          <div class="panel-head compact"><h3 data-i18n="provider.models">后端模型清单</h3><button class="ghost" onclick="addProviderModelRow()" data-i18n="actions.addModel">手动添加模型</button></div>
           <div class="table-wrap"><table id="providerModelsTable" class="mini-table"></table></div>
-          <div class="actions"><button onclick="saveProvider()" data-i18n="actions.saveProvider">保存 Provider</button><button class="danger" onclick="deleteProvider()" data-i18n="actions.deleteProvider">删除</button><button class="ghost" onclick="testProviderModel()" data-i18n="actions.testProvider">测试选中模型</button></div>
+          <div class="actions"><button onclick="saveProvider()" data-i18n="actions.saveProvider">保存</button><button class="danger" onclick="deleteProvider()" data-i18n="actions.deleteProvider">删除</button><button class="ghost" onclick="testProviderModel()" data-i18n="actions.testProvider">测试选中模型</button></div>
         </section>
       </section>
 
@@ -143,15 +143,14 @@
           <div class="panel-head"><h2 data-i18n="settings.title">平台设置</h2><button onclick="saveSettings()" data-i18n="actions.saveSettings">保存设置</button></div>
           <div class="settings-grid">
             <h3 data-i18n="settings.network">端口与代理</h3>
-            <label><span data-i18n="fields.apiAddr">代理监听地址</span><input id="settingApiAddr"></label>
-            <label><span data-i18n="fields.adminAddr">管理台监听地址</span><input id="settingAdminAddr"></label>
-            <label><span data-i18n="fields.requestTimeout">请求超时</span><small data-i18n="help.ms">单位：毫秒。</small><input id="settingRequestTimeout" type="number" min="1000"></label>
+            <label><span data-i18n="fields.apiPort">代理监听端口</span><input id="settingApiPort" type="number" min="1" max="65535"></label>
+            <label><span data-i18n="fields.adminPort">管理台监听端口</span><input id="settingAdminPort" type="number" min="1" max="65535"></label>
             <label class="check"><input id="settingTrustAuth" type="checkbox"><span data-i18n="fields.trustAuth">透传 Authorization</span></label>
           </div>
           <h3 data-i18n="settings.accounts">管理员账号</h3>
           <div class="table-wrap"><table id="adminAccountsTable" class="mini-table"></table></div>
           <div class="actions"><button class="ghost" onclick="addAdminAccount()" data-i18n="actions.addAdmin">新增管理员</button></div>
-          <h3 data-i18n="settings.export">配置导出</h3>
+          <h3 data-i18n="settings.export">Config.json</h3>
           <pre id="configDump">{}</pre>
         </section>
       </section>
