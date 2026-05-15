@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -75,8 +76,9 @@ func New(cfgPath string, cfg core.AppConfig, hub *state.Hub, logger *log.Logger)
 
 func (s *Service) APIServer() *http.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/chat/completions", s.handleProxy)
-	mux.HandleFunc("/v1/responses", s.handleProxy)
+	for _, proxyPath := range core.ProxyEndpointPaths() {
+		mux.HandleFunc(proxyPath, s.handleProxy)
+	}
 	return &http.Server{
 		Addr:              s.configRuntime.Snapshot().APIListenAddr,
 		Handler:           loggingMiddleware(s.logger, mux),
@@ -132,12 +134,18 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var payload map[string]any
-	if err := json.Unmarshal(body, &payload); err != nil {
-		writeJSONError(w, http.StatusBadRequest, "invalid_request", "request body must be valid JSON")
+	bodyContentType := r.Header.Get("Content-Type")
+	payload, form, err := parseProxyBody(body, bodyContentType)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	modelValue, _ := payload["model"].(string)
+	capability, ok := core.CapabilityForPath(r.URL.Path)
+	if !ok {
+		writeJSONError(w, http.StatusNotFound, "not_found", "unsupported proxy endpoint")
+		return
+	}
+	modelValue := proxyModelValue(payload, form)
 	virtualModelID := normalizeVirtualModelID(modelValue)
 	vm, ok := findVirtualModel(cfg.VirtualModels, virtualModelID)
 	if !ok {
@@ -153,6 +161,7 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 		VirtualModel: vm.ID,
 		AgentID:      r.Header.Get("X-MFP-Agent-Id"),
 		SessionID:    r.Header.Get("X-MFP-Session-Id"),
+		Capability:   capability,
 	}
 	planner := orchestrator.New(s, s.state)
 	plan, err := planner.Build(vm, route)
@@ -175,15 +184,21 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 			s.state.IncrementActive(candidate.Key(), candidate.ProviderID, candidate.ModelID)
 			attemptStart := time.Now()
 
-			attemptPayload := cloneMap(payload)
-			orchestrator.ReplaceModel(attemptPayload, candidate)
-			bodyBytes, _ := json.Marshal(attemptPayload)
+			bodyBytes, contentType, err := proxyAttemptBody(payload, form, bodyContentType, candidate)
+			if err != nil {
+				writeJSONError(w, http.StatusBadRequest, "invalid_request", err.Error())
+				return
+			}
+			headers := stripHopHeaders(r.Header, cfg.Proxy.TrustAuthorizationHeader)
+			if contentType != "" {
+				headers.Set("Content-Type", contentType)
+			}
 			response, err := s.adapter.Do(r.Context(), provider.AttemptRequest{
 				Provider:  providerCfg,
 				Candidate: candidate,
 				Path:      r.URL.Path,
 				Body:      bodyBytes,
-				Headers:   stripHopHeaders(r.Header, cfg.Proxy.TrustAuthorizationHeader),
+				Headers:   headers,
 			})
 			s.state.DecrementActive(candidate.Key())
 			attemptLatency := time.Since(attemptStart)
@@ -681,7 +696,7 @@ func (s *Service) fetchProviderModels(ctx context.Context, providerCfg core.Prov
 	}
 	models := make([]core.ProviderModel, 0, len(payload.Data))
 	for _, item := range payload.Data {
-		models = append(models, core.ProviderModel{ID: item.ID})
+		models = append(models, core.ProviderModel{ID: item.ID, Capabilities: core.DefaultModelCapabilities()})
 	}
 	return models, nil
 }
@@ -1115,6 +1130,96 @@ func actorFromContext(ctx context.Context) string {
 		return "system"
 	}
 	return claims.Username
+}
+
+func parseProxyBody(body []byte, contentType string) (map[string]any, *multipart.Form, error) {
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		request, err := http.NewRequest(http.MethodPost, "http://mfp-form", bytes.NewReader(body))
+		if err != nil {
+			return nil, nil, err
+		}
+		request.Header.Set("Content-Type", contentType)
+		if err := request.ParseMultipartForm(4 << 20); err != nil {
+			return nil, nil, err
+		}
+		return nil, request.MultipartForm, nil
+	}
+	payload := map[string]any{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, nil, fmt.Errorf("request body must be valid JSON")
+	}
+	return payload, nil, nil
+}
+
+func proxyModelValue(payload map[string]any, form *multipart.Form) string {
+	if form != nil {
+		return firstFormValue(form, "model")
+	}
+	modelValue, _ := payload["model"].(string)
+	return modelValue
+}
+
+func proxyAttemptBody(payload map[string]any, form *multipart.Form, contentType string, candidate core.ActualModelRef) ([]byte, string, error) {
+	if form == nil {
+		attemptPayload := cloneMap(payload)
+		orchestrator.ReplaceModel(attemptPayload, candidate)
+		body, err := json.Marshal(attemptPayload)
+		return body, "application/json", err
+	}
+	return multipartAttemptBody(form, candidate)
+}
+
+func multipartAttemptBody(form *multipart.Form, candidate core.ActualModelRef) ([]byte, string, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	for key, values := range form.Value {
+		for _, value := range values {
+			if key == "model" {
+				value = candidate.ModelID
+			}
+			if err := writer.WriteField(key, value); err != nil {
+				return nil, "", err
+			}
+		}
+	}
+	if _, ok := form.Value["model"]; !ok {
+		if err := writer.WriteField("model", candidate.ModelID); err != nil {
+			return nil, "", err
+		}
+	}
+	for key, files := range form.File {
+		for _, fileHeader := range files {
+			if err := copyMultipartFile(writer, key, fileHeader); err != nil {
+				return nil, "", err
+			}
+		}
+	}
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return body.Bytes(), writer.FormDataContentType(), nil
+}
+
+func copyMultipartFile(writer *multipart.Writer, key string, fileHeader *multipart.FileHeader) error {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	part, err := writer.CreateFormFile(key, fileHeader.Filename)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, file)
+	return err
+}
+
+func firstFormValue(form *multipart.Form, key string) string {
+	values := form.Value[key]
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
 }
 
 func cloneMap(in map[string]any) map[string]any {

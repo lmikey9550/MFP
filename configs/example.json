@@ -28,8 +28,8 @@
       "timeout_ms": 120000,
       "enabled": true,
       "models": [
-        { "id": "provider-model-a", "label": "provider-model-a", "capabilities": ["chat_completions", "responses", "streaming"] },
-        { "id": "provider-model-b", "label": "provider-model-b", "capabilities": ["chat_completions", "responses", "streaming"] }
+        { "id": "provider-model-a", "label": "provider-model-a", "capabilities": ["chat_completions", "responses", "completions", "streaming"] },
+        { "id": "provider-model-b", "label": "provider-model-b", "capabilities": ["chat_completions", "responses", "completions", "streaming"] }
       ]
     },
     {
@@ -42,7 +42,7 @@
       "timeout_ms": 120000,
       "enabled": true,
       "models": [
-        { "id": "provider-model-c", "label": "Provider Model C", "capabilities": ["chat_completions", "responses", "streaming"] }
+        { "id": "provider-model-c", "label": "Provider Model C", "capabilities": ["chat_completions", "responses", "completions", "streaming"] }
       ]
     }
   ],
@@ -71,7 +71,7 @@
           "priority": 1,
           "weight": 100,
           "max_retry": 1,
-          "capabilities": ["chat_completions", "responses", "streaming"],
+          "capabilities": ["chat_completions", "responses", "completions", "streaming"],
           "enabled": true
         },
         {
@@ -81,7 +81,7 @@
           "priority": 2,
           "weight": 80,
           "max_retry": 1,
-          "capabilities": ["chat_completions", "responses", "streaming"],
+          "capabilities": ["chat_completions", "responses", "completions", "streaming"],
           "enabled": true
         },
         {
@@ -91,7 +91,7 @@
           "priority": 3,
           "weight": 60,
           "max_retry": 1,
-          "capabilities": ["chat_completions", "responses", "streaming"],
+          "capabilities": ["chat_completions", "responses", "completions", "streaming"],
           "enabled": true
         }
       ]

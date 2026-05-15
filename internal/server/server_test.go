@@ -1,9 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -127,6 +129,195 @@ func TestProxyRequiresVirtualModelAPIKey(t *testing.T) {
 	service.handleProxy(validRec, validReq)
 	if validRec.Result().StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 with key, got %d", validRec.Result().StatusCode)
+	}
+}
+
+func TestProxyForwardsCommonEndpointsWithBackendModel(t *testing.T) {
+	for path, body := range map[string]string{
+		"/v1/chat/completions":      `{"model":"smart","messages":[]}`,
+		"/v1/responses":             `{"model":"smart","input":"hello"}`,
+		"/v1/completions":           `{"model":"smart","prompt":"hello"}`,
+		"/v1/embeddings":            `{"model":"smart","input":"hello"}`,
+		"/v1/images/generations":    `{"model":"smart","prompt":"hello"}`,
+		"/v1/images/edits":          `{"model":"smart","prompt":"hello"}`,
+		"/v1/audio/transcriptions":  `{"model":"smart"}`,
+		"/v1/audio/speech":          `{"model":"smart","input":"hello","voice":"alloy"}`,
+		"/v1/moderations":           `{"model":"smart","input":"hello"}`,
+		"/v1/rerank":                `{"model":"smart","query":"q","documents":["d"]}`,
+		"/v1/reranks":               `{"model":"smart","query":"q","documents":["d"]}`,
+		"/v1/messages":              `{"model":"smart","messages":[]}`,
+		"/v1/messages/count_tokens": `{"model":"smart","messages":[]}`,
+	} {
+		t.Run(path, func(t *testing.T) {
+			var gotPath string
+			var gotModel string
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				var payload map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+					t.Fatal(err)
+				}
+				gotModel, _ = payload["model"].(string)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"ok":true}`))
+			}))
+			defer upstream.Close()
+
+			cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "m1", Enabled: true, MaxRetry: 1}})
+			hub, err := state.NewHub(cfg.DataDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+			rec := httptest.NewRecorder()
+			service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, strings.NewReader(body)))
+			if rec.Result().StatusCode != http.StatusOK {
+				t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
+			}
+			if gotPath != path {
+				t.Fatalf("expected upstream path %s, got %s", path, gotPath)
+			}
+			if gotModel != "m1" {
+				t.Fatalf("expected backend model m1, got %s", gotModel)
+			}
+		})
+	}
+}
+
+func TestProxyForwardsMultipartEndpointWithBackendModel(t *testing.T) {
+	var gotModel string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseMultipartForm(4 << 20); err != nil {
+			t.Fatal(err)
+		}
+		gotModel = r.FormValue("model")
+		if _, _, err := r.FormFile("file"); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"text":"ok"}`))
+	}))
+	defer upstream.Close()
+
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "transcribe-model", Enabled: true, MaxRetry: 1, Capabilities: []string{core.CapabilityAudioTranscriptions}}})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.WriteField("model", "smart"); err != nil {
+		t.Fatal(err)
+	}
+	part, err := writer.CreateFormFile("file", "audio.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write([]byte("audio")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/audio/transcriptions", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, req)
+	if rec.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
+	}
+	if gotModel != "transcribe-model" {
+		t.Fatalf("expected transcribe-model, got %s", gotModel)
+	}
+}
+
+func TestProxyFiltersCandidatesByEndpointCapability(t *testing.T) {
+	var gotModel string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		gotModel, _ = payload["model"].(string)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer upstream.Close()
+
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{
+		{ProviderID: "p1", ModelID: "chat-model", Enabled: true, Priority: 1, MaxRetry: 1, Capabilities: []string{core.CapabilityChatCompletions}},
+		{ProviderID: "p1", ModelID: "embed-model", Enabled: true, Priority: 2, MaxRetry: 1, Capabilities: []string{core.CapabilityEmbeddings}},
+	})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/embeddings", strings.NewReader(`{"model":"smart","input":"hello"}`)))
+	if rec.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
+	}
+	if gotModel != "embed-model" {
+		t.Fatalf("expected embed-model, got %s", gotModel)
+	}
+}
+
+func TestProxyRejectsUnsupportedCapability(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("upstream should not be called")
+	}))
+	defer upstream.Close()
+
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "chat-model", Enabled: true, MaxRetry: 1, Capabilities: []string{core.CapabilityChatCompletions}}})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/embeddings", strings.NewReader(`{"model":"smart","input":"hello"}`)))
+	if rec.Result().StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Result().StatusCode)
+	}
+}
+
+func TestProxyAllowsEmptyCapabilitiesForCompatibility(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer upstream.Close()
+
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "legacy-model", Enabled: true, MaxRetry: 1}})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/embeddings", strings.NewReader(`{"model":"smart","input":"hello"}`)))
+	if rec.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
+	}
+}
+
+func proxyTestConfig(t *testing.T, upstreamURL string, candidates []core.ActualModelRef) core.AppConfig {
+	t.Helper()
+	models := make([]core.ProviderModel, 0, len(candidates))
+	for _, candidate := range candidates {
+		models = append(models, core.ProviderModel{ID: candidate.ModelID, Capabilities: candidate.Capabilities})
+	}
+	return core.AppConfig{
+		APIListenAddr:   ":0",
+		AdminListenAddr: ":0",
+		DataDir:         t.TempDir(),
+		Admin:           core.AdminConfig{SessionCookieName: "mfp", SessionTTLMinutes: 10},
+		Providers:       []core.ProviderConfig{{ID: "p1", Type: core.ProviderTypeOpenAICompatible, BaseURL: upstreamURL, Enabled: true, Models: models}},
+		VirtualModels:   []core.VirtualModel{{ID: "smart", Candidates: candidates}},
 	}
 }
 

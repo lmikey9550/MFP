@@ -61,7 +61,9 @@ func (a *OpenAICompatible) Do(ctx context.Context, req AttemptRequest) (AttemptR
 			httpReq.Header.Add(key, value)
 		}
 	}
-	httpReq.Header.Set("Content-Type", "application/json")
+	if httpReq.Header.Get("Content-Type") == "" {
+		httpReq.Header.Set("Content-Type", "application/json")
+	}
 	if credential := config.ResolveCredential(req.Provider); credential != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+credential)
 	}
