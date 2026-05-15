@@ -75,7 +75,7 @@
         <section class="panel">
           <div class="panel-head inline-head">
             <h2 data-i18n="vm.title">前端模型</h2>
-            <div class="toolbar"><select id="vmSelector" onchange="selectVirtualModel()"></select><button class="ghost" onclick="newVirtualModel()" data-i18n="vm.new">新建</button><button onclick="testVirtualModel()" data-i18n="actions.test">测试</button></div>
+            <div class="toolbar"><select id="vmSelector" onchange="selectVirtualModel()"></select><button class="ghost icon-button" onclick="newVirtualModel()" title="New" aria-label="New">＋</button><button class="icon-button" onclick="testVirtualModel()" title="Test" aria-label="Test">▶</button></div>
           </div>
           <div class="form-grid four">
             <label><span data-i18n="fields.vmId">前端模型 ID</span><small data-i18n="help.vmId">客户端请求中的 model 值。</small><input id="vmId" placeholder="smart"></label>
@@ -86,7 +86,7 @@
           <div class="form-grid four">
             <label><span data-i18n="fields.stickyScope">粘性作用域</span><small data-i18n="help.stickyScope">相同作用域优先沿用上次成功模型。</small><select id="vmStickyScope"><option value="global">global</option><option value="agent">agent</option><option value="session">session</option><option value="off">off</option></select></label>
             <label><span data-i18n="fields.stickyTimeout">粘性超时</span><small data-i18n="help.minutes">单位：分钟。</small><input id="vmStickyTimeout" type="number" min="1"></label>
-            <label><span data-i18n="fields.strategy">轮换策略</span><small data-i18n="help.strategy">候选模型的初始排序方式。</small><select id="vmStrategy"><option value="sequential">sequential</option><option value="random">random</option><option value="least_loaded">least_loaded</option></select></label>
+            <label><span data-i18n="fields.strategy">轮换策略</span><small data-i18n="help.strategy">后端模型的初始排序方式。</small><select id="vmStrategy"><option value="sequential">sequential</option><option value="random">random</option><option value="least_loaded">least_loaded</option></select></label>
             <label class="check"><input id="vmSticky" type="checkbox"><span data-i18n="fields.enableSticky">启用粘性</span></label>
           </div>
           <div class="form-grid four">
@@ -96,7 +96,7 @@
             <label><span data-i18n="fields.congestionCooldown">拥塞冷却</span><small data-i18n="help.seconds">单位：秒。</small><input id="vmCongestionCooldown" type="number" min="0"></label>
           </div>
           <label><span data-i18n="fields.congestionStrategy">拥塞策略</span><select id="vmCongestionStrategy"><option value="least_loaded">least_loaded</option><option value="round_robin">round_robin</option><option value="random">random</option></select></label>
-          <div class="panel-head compact"><h3 data-i18n="vm.candidates">候选模型</h3><button class="ghost" onclick="addCandidateRow()" data-i18n="actions.addCandidate">添加候选</button></div>
+          <div class="panel-head compact"><h3 data-i18n="vm.candidates">后端模型</h3><button class="ghost" onclick="addCandidateRow()" data-i18n="actions.addCandidate">添加后端模型</button></div>
           <div class="table-wrap"><table id="vmCandidatesTable" class="mini-table"></table></div>
           <div class="actions"><button onclick="saveVirtualModel()" data-i18n="actions.saveVM">保存</button><button class="danger" onclick="deleteVirtualModel()" data-i18n="actions.deleteVM">删除</button></div>
         </section>
@@ -104,7 +104,7 @@
 
       <section id="tab-providers" class="tab-sheet">
         <section class="panel">
-          <div class="panel-head inline-head"><h2 data-i18n="provider.title">后端模型</h2><div class="toolbar"><select id="providerSelector" onchange="selectProvider()"></select><button class="ghost" onclick="newProvider()" data-i18n="provider.new">新建</button><button onclick="syncCurrentProviderModels()" data-i18n="actions.syncModels">同步模型</button></div></div>
+          <div class="panel-head inline-head"><h2 data-i18n="provider.title">后端模型</h2><div class="toolbar"><select id="providerSelector" onchange="selectProvider()"></select><button class="ghost icon-button" onclick="newProvider()" title="New" aria-label="New">＋</button><button class="icon-button" onclick="syncCurrentProviderModels()" title="Sync" aria-label="Sync">↻</button></div></div>
           <div class="form-grid three">
             <label><span data-i18n="fields.providerId">Provider ID</span><small data-i18n="help.providerId">上游服务的唯一标识。</small><input id="providerId" placeholder="mock-primary"></label>
             <label><span data-i18n="fields.baseUrl">上游地址</span><small data-i18n="help.baseUrl">OpenAI-compatible base URL。</small><input id="providerBaseUrl" placeholder="http://host:4000/v1"></label>
@@ -129,7 +129,7 @@
 
       <section id="tab-rules" class="tab-sheet">
         <section class="panel">
-          <div class="panel-head"><h2 data-i18n="rules.title">规则设置</h2><div class="toolbar"><button class="ghost" onclick="addRuleFromWizard()" data-i18n="rules.addFromWizard">按向导新增</button><button onclick="saveRules()" data-i18n="actions.saveRules">保存规则</button></div></div>
+          <div class="panel-head"><h2 data-i18n="rules.title">规则设置</h2><div class="toolbar"><button class="ghost" onclick="addRuleFromWizard()" data-i18n="rules.addFromWizard">新增</button><button onclick="saveRules()" data-i18n="actions.saveRules">保存规则</button></div></div>
           <div class="wizard">
             <label><span data-i18n="rules.defaultAction">兜底动作</span><small data-i18n="help.defaultAction">所有未命中的报错默认执行的操作。</small><select id="defaultRuleAction"><option value="failover" data-i18n="rule.action.failover">failover</option><option value="retry" data-i18n="rule.action.retry">retry</option><option value="reject" data-i18n="rule.action.reject">reject</option></select></label>
             <p class="muted" data-i18n="rules.actionNote">failover = 切换到下一个模型，retry = 重试当前模型，reject = 直接返回错误。</p>
