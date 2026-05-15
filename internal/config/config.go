@@ -187,6 +187,9 @@ func applyDefaults(cfg *core.AppConfig) {
 	if cfg.Proxy.RequestTimeoutMS == 0 {
 		cfg.Proxy.RequestTimeoutMS = 120000
 	}
+	if cfg.Proxy.MaxBodyBytes == 0 {
+		cfg.Proxy.MaxBodyBytes = 64 << 20
+	}
 	if cfg.Admin.SessionCookieName == "" {
 		cfg.Admin.SessionCookieName = "mfp_session"
 	}

@@ -224,11 +224,24 @@ func handleImageEdit(w http.ResponseWriter, r *http.Request, providerName string
 }
 
 func handleTranscription(w http.ResponseWriter, r *http.Request, providerName string) {
-	var payload struct {
-		Model string `json:"model"`
+	model := ""
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		if err := r.ParseMultipartForm(64 << 20); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+			return
+		}
+		model = r.FormValue("model")
+	} else {
+		var payload struct {
+			Model string `json:"model"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+			return
+		}
+		model = payload.Model
 	}
-	_ = json.NewDecoder(r.Body).Decode(&payload)
-	writeJSON(w, http.StatusOK, map[string]any{"text": "mock transcription from " + providerName, "model": payload.Model})
+	writeJSON(w, http.StatusOK, map[string]any{"text": "mock transcription from " + providerName, "model": model})
 }
 
 func handleSpeech(w http.ResponseWriter, r *http.Request, providerName string) {

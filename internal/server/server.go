@@ -125,7 +125,7 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cfg := s.configRuntime.Snapshot()
-	body, err := io.ReadAll(io.LimitReader(r.Body, 4<<20))
+	body, err := readProxyBody(r.Body, cfg.Proxy.MaxBodyBytes)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid_request", "failed to read request body")
 		return
@@ -133,7 +133,7 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	bodyContentType := r.Header.Get("Content-Type")
-	payload, form, err := parseProxyBody(body, bodyContentType)
+	payload, form, err := parseProxyBody(body, bodyContentType, cfg.Proxy.MaxBodyBytes)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
@@ -1030,19 +1030,26 @@ func stripHopHeaders(in http.Header, trustAuthorization bool) http.Header {
 	out := http.Header{}
 	for key, values := range in {
 		lower := strings.ToLower(key)
-		switch lower {
-		case "host", "content-length", "connection", "cookie":
+		if shouldStripHopHeader(lower) || lower == "cookie" {
 			continue
-		case "authorization":
-			if !trustAuthorization {
-				continue
-			}
+		}
+		if lower == "authorization" && !trustAuthorization {
+			continue
 		}
 		for _, value := range values {
 			out.Add(key, value)
 		}
 	}
 	return out
+}
+
+func shouldStripHopHeader(lower string) bool {
+	switch lower {
+	case "host", "content-length", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade":
+		return true
+	default:
+		return false
+	}
 }
 
 func writeNormalizedError(w http.ResponseWriter, n core.NormalizedError) {
@@ -1077,6 +1084,9 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 func copyHeaders(dst, src http.Header) {
 	for key, values := range src {
+		if shouldStripHopHeader(strings.ToLower(key)) {
+			continue
+		}
 		for _, value := range values {
 			dst.Add(key, value)
 		}
@@ -1124,14 +1134,31 @@ func actorFromContext(ctx context.Context) string {
 	return claims.Username
 }
 
-func parseProxyBody(body []byte, contentType string) (map[string]any, *multipart.Form, error) {
+func readProxyBody(body io.Reader, maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		maxBytes = 64 << 20
+	}
+	out, err := io.ReadAll(io.LimitReader(body, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(out)) > maxBytes {
+		return nil, fmt.Errorf("request body exceeds %d bytes", maxBytes)
+	}
+	return out, nil
+}
+
+func parseProxyBody(body []byte, contentType string, maxBytes int64) (map[string]any, *multipart.Form, error) {
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		request, err := http.NewRequest(http.MethodPost, "http://mfp-form", bytes.NewReader(body))
 		if err != nil {
 			return nil, nil, err
 		}
 		request.Header.Set("Content-Type", contentType)
-		if err := request.ParseMultipartForm(4 << 20); err != nil {
+		if maxBytes <= 0 {
+			maxBytes = 64 << 20
+		}
+		if err := request.ParseMultipartForm(maxBytes); err != nil {
 			return nil, nil, err
 		}
 		return nil, request.MultipartForm, nil

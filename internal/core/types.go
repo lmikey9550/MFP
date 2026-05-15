@@ -115,8 +115,9 @@ func (c AppConfig) Clone() AppConfig {
 }
 
 type ProxyConfig struct {
-	RequestTimeoutMS         int  `json:"request_timeout_ms"`
-	TrustAuthorizationHeader bool `json:"trust_authorization_header"`
+	RequestTimeoutMS         int   `json:"request_timeout_ms"`
+	MaxBodyBytes             int64 `json:"max_body_bytes"`
+	TrustAuthorizationHeader bool  `json:"trust_authorization_header"`
 }
 
 type AdminConfig struct {

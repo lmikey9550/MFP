@@ -4,7 +4,8 @@
   "data_dir": "/app/data",
   "proxy": {
     "request_timeout_ms": 30000,
-    "trust_authorization_header": false
+    "trust_authorization_header": false,
+    "max_body_bytes": 67108864
   },
   "admin": {
     "session_cookie_name": "mfp_session",

@@ -132,6 +132,95 @@ func TestProxyRequiresVirtualModelAPIKey(t *testing.T) {
 	}
 }
 
+func TestProxyRejectsRequestBodyOverConfiguredLimit(t *testing.T) {
+	cfg := proxyTestConfig(t, "http://127.0.0.1:1", []core.ActualModelRef{{ProviderID: "p1", ModelID: "m1", Enabled: true, MaxRetry: 1}})
+	cfg.Proxy.MaxBodyBytes = 20
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(`{"model":"smart","messages":[],"padding":"too-large"}`)))
+	if rec.Result().StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 over body limit, got %d", rec.Result().StatusCode)
+	}
+}
+
+func TestProxyAuthorizationForwardingAndProviderCredential(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		trustClient bool
+		providerKey string
+		wantAuth    string
+	}{
+		{name: "drops client authorization by default", wantAuth: ""},
+		{name: "forwards client authorization when trusted", trustClient: true, wantAuth: "Bearer client-key"},
+		{name: "provider credential overrides client authorization", trustClient: true, providerKey: "provider-key", wantAuth: "Bearer provider-key"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotAuth string
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotAuth = r.Header.Get("Authorization")
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"ok":true}`))
+			}))
+			defer upstream.Close()
+
+			cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "m1", Enabled: true, MaxRetry: 1}})
+			cfg.Proxy.TrustAuthorizationHeader = tt.trustClient
+			cfg.Providers[0].APIKey = tt.providerKey
+			hub, err := state.NewHub(cfg.DataDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+			req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", strings.NewReader(`{"model":"smart","messages":[]}`))
+			req.Header.Set("Authorization", "Bearer client-key")
+			rec := httptest.NewRecorder()
+			service.APIServer().Handler.ServeHTTP(rec, req)
+			if rec.Result().StatusCode != http.StatusOK {
+				t.Fatalf("expected 200, got %d", rec.Result().StatusCode)
+			}
+			if gotAuth != tt.wantAuth {
+				t.Fatalf("expected Authorization %q, got %q", tt.wantAuth, gotAuth)
+			}
+		})
+	}
+}
+
+func TestProxyPreservesResponseContentTypeAndStripsHopHeaders(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "audio/mpeg")
+		w.Header().Set("Connection", "close")
+		w.Header().Set("Transfer-Encoding", "chunked")
+		_, _ = w.Write([]byte("audio"))
+	}))
+	defer upstream.Close()
+
+	cfg := proxyTestConfig(t, upstream.URL, []core.ActualModelRef{{ProviderID: "p1", ModelID: "speech-model", Enabled: true, MaxRetry: 1}})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v1/audio/speech", strings.NewReader(`{"model":"smart","input":"hello"}`)))
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", res.StatusCode)
+	}
+	if got := res.Header.Get("Content-Type"); got != "audio/mpeg" {
+		t.Fatalf("expected audio/mpeg content type, got %q", got)
+	}
+	if got := res.Header.Get("Connection"); got != "" {
+		t.Fatalf("expected Connection header stripped, got %q", got)
+	}
+	if got := res.Header.Get("Transfer-Encoding"); got != "" {
+		t.Fatalf("expected Transfer-Encoding header stripped, got %q", got)
+	}
+}
+
 func TestProxyForwardsCommonEndpointsWithBackendModel(t *testing.T) {
 	for path, body := range map[string]string{
 		"/v1/chat/completions":      `{"model":"smart","messages":[]}`,
@@ -187,12 +276,27 @@ func TestProxyForwardsCommonEndpointsWithBackendModel(t *testing.T) {
 func TestProxyForwardsMultipartEndpointWithBackendModel(t *testing.T) {
 	var gotModel string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+			t.Fatalf("expected multipart content type, got %q", r.Header.Get("Content-Type"))
+		}
 		if err := r.ParseMultipartForm(4 << 20); err != nil {
 			t.Fatal(err)
 		}
 		gotModel = r.FormValue("model")
-		if _, _, err := r.FormFile("file"); err != nil {
+		if got := r.FormValue("language"); got != "en" {
+			t.Fatalf("expected language field preserved, got %q", got)
+		}
+		file, _, err := r.FormFile("file")
+		if err != nil {
 			t.Fatal(err)
+		}
+		defer file.Close()
+		content, err := io.ReadAll(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != "audio" {
+			t.Fatalf("expected file content preserved, got %q", string(content))
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"text":"ok"}`))
@@ -209,6 +313,9 @@ func TestProxyForwardsMultipartEndpointWithBackendModel(t *testing.T) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	if err := writer.WriteField("model", "smart"); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteField("language", "en"); err != nil {
 		t.Fatal(err)
 	}
 	part, err := writer.CreateFormFile("file", "audio.txt")
