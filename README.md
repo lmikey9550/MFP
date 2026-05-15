@@ -264,4 +264,4 @@ docs/                user manuals and additional docs
 
 ## License
 
-No license file is currently included. Add one before distributing this project publicly.
+MFP is open source under the [MIT License](LICENSE).

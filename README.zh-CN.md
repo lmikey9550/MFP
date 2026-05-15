@@ -264,4 +264,4 @@ docs/                用户手册和其他文档
 
 ## License
 
-当前项目尚未包含 license 文件。公开分发前请补充 license。
+MFP 使用 [MIT License](LICENSE) 开源。
