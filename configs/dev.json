@@ -1,0 +1,137 @@
+{
+  "api_listen_addr": ":18320",
+  "admin_listen_addr": ":18321",
+  "data_dir": "data",
+  "proxy": {
+    "request_timeout_ms": 30000,
+    "trust_authorization_header": false,
+    "debug_headers": true
+  },
+  "admin": {
+    "session_cookie_name": "mfp_session",
+    "session_ttl_minutes": 120,
+    "accounts": [
+      {
+        "username": "admin",
+        "role": "admin",
+        "password": "change-me"
+      }
+    ]
+  },
+  "providers": [
+    {
+      "id": "mock-primary",
+      "type": "openai_compatible",
+      "base_url": "http://127.0.0.1:4000/v1",
+      "credential_ref": "mock_primary",
+      "credential_env": "MOCK_PRIMARY_KEY",
+      "headers_template": {},
+      "timeout_ms": 30000,
+      "enabled": true,
+      "models": [
+        { "id": "provider-model-a", "label": "provider-model-a", "capabilities": ["chat_completions", "responses", "streaming"] },
+        { "id": "provider-model-b", "label": "provider-model-b", "capabilities": ["chat_completions", "responses", "streaming"] }
+      ]
+    },
+    {
+      "id": "mock-backup",
+      "type": "openai_compatible",
+      "base_url": "http://127.0.0.1:4001/v1",
+      "credential_ref": "mock_backup",
+      "credential_env": "MOCK_BACKUP_KEY",
+      "headers_template": {},
+      "timeout_ms": 30000,
+      "enabled": true,
+      "models": [
+        { "id": "provider-model-c", "label": "Provider Model C", "capabilities": ["chat_completions", "responses", "streaming"] },
+        { "id": "provider-model-b-backup", "label": "Provider Model B Backup", "capabilities": ["chat_completions", "responses", "streaming"] }
+      ]
+    }
+  ],
+  "virtual_models": [
+    {
+      "id": "smart",
+      "display_name": "智能模型",
+      "description": "本地测试链路",
+      "sticky": true,
+      "sticky_scope": "agent",
+      "sticky_timeout_minutes": 30,
+      "failover_strategy": "sequential",
+      "max_attempts": 3,
+      "congestion": {
+        "enabled": true,
+        "window_seconds": 10,
+        "threshold": 5,
+        "strategy": "least_loaded",
+        "cooldown_seconds": 30
+      },
+      "candidates": [
+        {
+          "provider_id": "mock-primary",
+          "model_id": "provider-model-a",
+          "label": "provider-model-a",
+          "priority": 1,
+          "weight": 100,
+          "max_retry": 1,
+          "capabilities": ["chat_completions", "responses", "streaming"],
+          "enabled": true
+        },
+        {
+          "provider_id": "mock-backup",
+          "model_id": "provider-model-c",
+          "label": "Provider Model C",
+          "priority": 2,
+          "weight": 80,
+          "max_retry": 1,
+          "capabilities": ["chat_completions", "responses", "streaming"],
+          "enabled": true
+        },
+        {
+          "provider_id": "mock-primary",
+          "model_id": "provider-model-b",
+          "label": "provider-model-b",
+          "priority": 3,
+          "weight": 60,
+          "max_retry": 1,
+          "capabilities": ["chat_completions", "responses", "streaming"],
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "error_rules": [
+    {
+      "id": "builtin-rate-limit",
+      "name": "Rate limit",
+      "match": { "status_code": 429, "category": "rate_limit" },
+      "action": "failover",
+      "cooldown_seconds": 60,
+      "is_builtin": true,
+      "enabled": true,
+      "priority": 10,
+      "health_impact": "credential"
+    },
+    {
+      "id": "builtin-bad-request",
+      "name": "Bad request",
+      "match": { "status_code": 400 },
+      "action": "reject",
+      "cooldown_seconds": 0,
+      "is_builtin": true,
+      "enabled": true,
+      "priority": 70,
+      "health_impact": "none"
+    },
+    {
+      "id": "builtin-upstream",
+      "name": "Upstream error",
+      "match": { "status_code_range": [500, 599] },
+      "action": "failover",
+      "cooldown_seconds": 45,
+      "is_builtin": true,
+      "enabled": true,
+      "priority": 40,
+      "health_impact": "provider"
+    }
+  ]
+}

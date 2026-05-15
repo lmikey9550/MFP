@@ -1,0 +1,23 @@
+# Binaries
+/bin/
+/build/
+*.exe
+*.test
+*.out
+
+# Runtime data
+/data/
+/data-*/
+/logs/
+/tmp/
+**/test.json
+
+# Local configuration
+.env
+.env.*
+configs/*-local.json
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/

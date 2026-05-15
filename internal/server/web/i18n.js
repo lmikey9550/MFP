@@ -1,0 +1,60 @@
+const MFP_I18N = {
+  "zh-CN": {
+    "app.title": "MFP 控制台", "app.subtitle": "管理虚拟模型、真实模型、规则和平台设置。",
+    "login.username": "管理员用户名", "login.password": "管理员密码", "login.button": "登录",
+    "tabs.dashboard": "看板", "tabs.virtualModels": "虚拟模型", "tabs.providers": "真实模型", "tabs.rules": "规则设置", "tabs.settings": "平台设置",
+    "actions.reloadConfig": "重载配置", "actions.refresh": "刷新", "actions.test": "测试", "actions.addCandidate": "添加候选", "actions.saveVM": "保存虚拟模型", "actions.deleteVM": "删除", "actions.syncModels": "同步模型", "actions.fetchModels": "获取模型列表", "actions.addSelectedModels": "添加勾选模型", "actions.addModel": "手动添加模型", "actions.saveProvider": "保存 Provider", "actions.deleteProvider": "删除", "actions.testProvider": "测试选中模型", "actions.saveRules": "保存规则", "actions.saveSettings": "保存设置", "actions.addAdmin": "新增管理员", "actions.logout": "退出登录", "actions.copy": "复制", "actions.toggleSecret": "显示", "actions.hideSecret": "隐藏",
+"forms.requiredNote": "* 为必填项",
+"vm.candidates": "候选模型（* 为必填）",
+"fields.vmId": "虚拟模型 ID *",
+"fields.providerId": "Provider ID *",
+"fields.baseUrl": "上游地址 *",
+"fields.type": "类型 *",
+"fields.apiAddr": "代理监听地址 *",
+"fields.adminAddr": "管理台监听地址 *",
+"table.username": "用户名 *",
+"table.providerModelId": "模型 ID *",
+"table.candidateProvider": "提供方 *",
+"table.candidateModel": "模型 *",
+"table.candidatePriority": "优先级",
+"table.candidateRetry": "重试",
+"table.candidateCapabilities": "能力",
+"table.candidateEnabled": "启用",
+"table.providerModelLabel": "标签",
+"table.providerModelCapabilities": "能力",
+    "metrics.requests": "请求总数", "metrics.success": "成功请求", "metrics.failover": "故障转移", "metrics.unhealthy": "异常模型",
+    "dashboard.health": "模型健康", "dashboard.requests": "最近请求", "dashboard.sticky": "Sticky / Cooldown",
+    "vm.title": "虚拟模型", "vm.new": "新建", "vm.candidates": "候选模型",
+    "provider.title": "真实模型 / Provider", "provider.new": "新建", "provider.models": "真实模型清单", "provider.discoveredModels": "从 /models 获取模型",
+    "rules.title": "规则设置", "rules.addFromWizard": "按向导新增", "rules.defaultAction": "兜底动作", "rules.action": "动作", "rules.actionNote": "failover = 切换到下一个模型，retry = 重试当前模型，reject = 直接返回错误。", "rules.advanced": "细规则表",
+    "settings.title": "平台设置", "settings.network": "端口与代理", "settings.accounts": "管理员账号", "settings.export": "配置导出",
+    "fields.vmId": "虚拟模型 ID", "fields.vmApiKey": "虚拟模型 API Key", "fields.displayName": "显示名称", "fields.description": "描述", "fields.stickyScope": "粘性作用域", "fields.stickyTimeout": "粘性超时", "fields.strategy": "轮换策略", "fields.enableSticky": "启用粘性", "fields.maxAttempts": "最大尝试次数", "fields.congestionThreshold": "拥塞阈值", "fields.congestionWindow": "拥塞窗口", "fields.congestionCooldown": "拥塞冷却", "fields.congestionStrategy": "拥塞策略",
+    "fields.providerId": "Provider ID", "fields.baseUrl": "上游地址", "fields.type": "类型", "fields.timeout": "请求超时", "fields.credentialRef": "凭据名称", "fields.credentialEnv": "API Key 环境变量名（可选）", "fields.apiKey": "API Key", "fields.enabled": "启用", "fields.headers": "默认 Headers JSON",
+    "fields.apiAddr": "代理监听地址", "fields.adminAddr": "管理台监听地址", "fields.requestTimeout": "请求超时", "fields.cookieName": "Cookie 名称", "fields.trustAuth": "透传 Authorization", "fields.debugHeaders": "输出调试响应头",
+    "help.vmId": "客户端请求中的 model 值。", "help.vmApiKey": "客户端调用该虚拟模型时使用。", "help.displayName": "仅用于管理台展示。", "help.description": "简短说明用途。", "help.stickyScope": "相同作用域优先沿用上次成功模型。", "help.minutes": "单位：分钟。", "help.strategy": "候选模型的初始排序方式。", "help.maxAttempts": "单次请求最多尝试几个候选。", "help.congestionThreshold": "并发超过该值时触发分流。", "help.seconds": "单位：秒。", "help.providerId": "上游服务的唯一标识。", "help.baseUrl": "OpenAI-compatible base URL。", "help.ms": "单位：毫秒。", "help.credentialRef": "用于健康影响分组。", "help.credentialEnv": "如果未填写 API Key，才会读取该环境变量。", "help.apiKey": "直接保存到本地配置文件。", "help.headers": "发送到上游的固定请求头。", "help.defaultAction": "所有未命中的报错默认执行的操作。", "help.ruleAction": "failover 尝试下个模型，retry 重试当前模型，reject 直接返回错误。",
+    "table.provider": "提供方", "table.model": "模型", "table.priority": "优先级", "table.retry": "重试", "table.capabilities": "能力", "table.enabled": "启用", "table.modelId": "模型 ID", "table.label": "标签", "table.id": "ID", "table.name": "名称", "table.action": "动作", "table.impact": "影响范围", "table.cooldown": "冷却", "table.category": "错误类型", "table.statusCode": "状态码", "table.bodyContains": "正文包含", "table.username": "用户名", "table.role": "角色", "table.newPassword": "新密码", "table.time": "时间", "table.virtual": "虚拟模型", "table.actual": "真实模型", "table.status": "状态", "table.reason": "原因", "table.failover": "故障转移", "table.attempts": "尝试链路", "table.failures": "失败次数", "table.avgMs": "平均耗时", "table.scope": "作用域", "table.expires": "过期时间",
+    "empty.candidates": "暂无候选模型。", "empty.models": "暂无模型。", "button.recover": "恢复", "health.normal": "正常", "placeholder.keepPassword": "留空则保持不变", "status.copied": "已复制。", "status.defaultPassword": "当前正在使用默认管理员密码 change-me，请尽快到平台设置中修改。"
+  },
+  "en-US": {
+    "app.title": "MFP Console", "app.subtitle": "Manage virtual models, providers, rules, and platform settings.",
+    "login.username": "Admin username", "login.password": "Admin password", "login.button": "Sign in",
+    "tabs.dashboard": "Dashboard", "tabs.virtualModels": "Virtual models", "tabs.providers": "Real models", "tabs.rules": "Rules", "tabs.settings": "Platform",
+    "actions.reloadConfig": "Reload config", "actions.refresh": "Refresh", "actions.test": "Test", "actions.addCandidate": "Add candidate", "actions.saveVM": "Save virtual model", "actions.deleteVM": "Delete", "actions.syncModels": "Sync models", "actions.fetchModels": "Fetch model list", "actions.addSelectedModels": "Add selected models", "actions.addModel": "Add model", "actions.saveProvider": "Save provider", "actions.deleteProvider": "Delete provider", "actions.testProvider": "Test selected model", "actions.saveRules": "Save rules", "actions.saveSettings": "Save settings", "actions.addAdmin": "Add admin", "actions.logout": "Sign out", "actions.copy": "Copy", "actions.toggleSecret": "Show", "actions.hideSecret": "Hide",
+    "metrics.requests": "Requests", "metrics.success": "Success", "metrics.failover": "Failovers", "metrics.unhealthy": "Unhealthy models",
+    "dashboard.health": "Model health", "dashboard.requests": "Recent requests", "dashboard.sticky": "Sticky / Cooldown",
+    "vm.title": "Virtual models", "vm.new": "New", "vm.candidates": "Candidate models",
+    "provider.title": "Real models / Provider", "provider.new": "New", "provider.models": "Real model catalog", "provider.discoveredModels": "Fetch from /models",
+    "rules.title": "Rules", "rules.addFromWizard": "Add from wizard", "rules.defaultAction": "Default action", "rules.action": "Action", "rules.actionNote": "failover = switch to the next model, retry = retry the current model, reject = return the error.", "rules.advanced": "Fine-grained rules",
+    "settings.title": "Platform settings", "settings.network": "Ports and proxy", "settings.accounts": "Admin accounts", "settings.export": "Config export",
+    "fields.vmId": "Virtual model ID", "fields.vmApiKey": "Virtual model API Key", "fields.displayName": "Display name", "fields.description": "Description", "fields.stickyScope": "Sticky scope", "fields.stickyTimeout": "Sticky timeout", "fields.strategy": "Failover strategy", "fields.enableSticky": "Enable sticky", "fields.maxAttempts": "Max attempts", "fields.congestionThreshold": "Congestion threshold", "fields.congestionWindow": "Congestion window", "fields.congestionCooldown": "Congestion cooldown", "fields.congestionStrategy": "Congestion strategy",
+    "fields.providerId": "Provider ID", "fields.baseUrl": "Base URL", "fields.type": "Type", "fields.timeout": "Timeout", "fields.credentialRef": "Credential name", "fields.credentialEnv": "API key env (optional)", "fields.apiKey": "API Key", "fields.enabled": "Enabled", "fields.headers": "Default headers JSON",
+    "fields.apiAddr": "API listen address", "fields.adminAddr": "Admin listen address", "fields.requestTimeout": "Request timeout", "fields.cookieName": "Cookie name", "fields.trustAuth": "Forward Authorization", "fields.debugHeaders": "Debug headers",
+    "help.vmId": "The model value clients send.", "help.vmApiKey": "Clients use this key when calling the virtual model.", "help.displayName": "Only shown in the console.", "help.description": "Short usage note.", "help.stickyScope": "Requests in the same scope prefer the last successful model.", "help.minutes": "Unit: minutes.", "help.strategy": "Initial ordering for candidates.", "help.maxAttempts": "Maximum candidates to try per request.", "help.congestionThreshold": "Route away when concurrency exceeds this value.", "help.seconds": "Unit: seconds.", "help.providerId": "Unique upstream identifier.", "help.baseUrl": "OpenAI-compatible base URL.", "help.ms": "Unit: milliseconds.", "help.credentialRef": "Groups health impact by credential.", "help.credentialEnv": "Used only when API Key is empty.", "help.apiKey": "Saved directly in the local config file.", "help.headers": "Fixed headers sent upstream.", "help.defaultAction": "What to do for errors not matched above.", "help.ruleAction": "failover tries next model, retry repeats current model, reject returns the error.",
+    "table.provider": "Provider", "table.model": "Model", "table.priority": "Priority", "table.retry": "Retry", "table.capabilities": "Capabilities", "table.enabled": "Enabled", "table.modelId": "Model ID", "table.label": "Label", "table.id": "ID", "table.name": "Name", "table.action": "Action", "table.impact": "Impact", "table.cooldown": "Cooldown", "table.category": "Category", "table.statusCode": "Status code", "table.bodyContains": "Body contains", "table.username": "Username", "table.role": "Role", "table.newPassword": "New password", "table.time": "Time", "table.virtual": "Virtual", "table.actual": "Actual", "table.status": "Status", "table.reason": "Reason", "table.failover": "Failover", "table.attempts": "Attempts", "table.failures": "Failures", "table.avgMs": "Avg ms", "table.scope": "Scope", "table.expires": "Expires",
+    "empty.candidates": "No candidates.", "empty.models": "No models.", "button.recover": "Recover", "health.normal": "Normal", "placeholder.keepPassword": "Leave blank to keep", "status.copied": "Copied.", "status.defaultPassword": "You are using the default admin password change-me. Please change it in Platform settings."
+  }
+};
+function currentLanguage(){return localStorage.getItem("mfp_lang")||"zh-CN"}
+function t(k){return(MFP_I18N[currentLanguage()]&&MFP_I18N[currentLanguage()][k])||MFP_I18N["zh-CN"][k]||k}
+function applyI18n(){const lang=currentLanguage();document.documentElement.lang=lang;document.querySelectorAll("[data-i18n]").forEach(n=>{n.textContent=t(n.dataset.i18n)});document.querySelectorAll("[data-i18n-placeholder]").forEach(n=>{n.placeholder=t(n.dataset.i18nPlaceholder)});const s=document.getElementById("languageSelect");if(s)s.value=lang}
+function setLanguage(lang){localStorage.setItem("mfp_lang",lang);applyI18n()}
