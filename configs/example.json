@@ -4,8 +4,7 @@
   "data_dir": "data",
   "proxy": {
     "request_timeout_ms": 120000,
-    "trust_authorization_header": false,
-    "debug_headers": true
+    "trust_authorization_header": false
   },
   "admin": {
     "session_cookie_name": "mfp_session",

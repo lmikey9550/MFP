@@ -31,7 +31,6 @@ func TestProxyFailoverAcrossProviders(t *testing.T) {
 		APIListenAddr:   ":0",
 		AdminListenAddr: ":0",
 		DataDir:         t.TempDir(),
-		Proxy:           core.ProxyConfig{DebugHeaders: true},
 		Admin: core.AdminConfig{
 			SessionCookieName: "mfp",
 			SessionTTLMinutes: 10,
@@ -82,12 +81,12 @@ func TestProxyFailoverAcrossProviders(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", res.StatusCode)
 	}
-	if got := res.Header.Get("X-MFP-Provider"); got != "p2" {
-		t.Fatalf("expected failover to p2, got %s", got)
-	}
 	logs := hub.RequestLogs()
 	if len(logs) != 1 || logs[0].Status != "failover" {
 		t.Fatalf("expected one failover log, got %#v", logs)
+	}
+	if logs[0].ProviderID != "p2" {
+		t.Fatalf("expected failover to p2, got %s", logs[0].ProviderID)
 	}
 }
 

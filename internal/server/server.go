@@ -153,7 +153,6 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 		VirtualModel: vm.ID,
 		AgentID:      r.Header.Get("X-MFP-Agent-Id"),
 		SessionID:    r.Header.Get("X-MFP-Session-Id"),
-		Debug:        strings.EqualFold(r.Header.Get("X-MFP-Debug"), "true"),
 	}
 	planner := orchestrator.New(s, s.state)
 	plan, err := planner.Build(vm, route)
@@ -227,7 +226,6 @@ func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {
 					CreatedAt:     time.Now().UTC(),
 				})
 				copyHeaders(w.Header(), response.Header)
-				addDebugHeaders(w.Header(), cfg, vm.ID, candidate, failoverCount, plan.StickyHit, plan.Reason)
 				w.WriteHeader(response.StatusCode)
 				_, _ = io.Copy(w, response.Stream)
 				return
@@ -887,13 +885,18 @@ func (s *Service) runProxyTest(ctx context.Context, proxyPath string, payload ma
 	s.handleProxy(rec, req)
 	res := rec.Result()
 	defer res.Body.Close()
-	return map[string]any{
-		"ok":             res.StatusCode >= 200 && res.StatusCode < 300,
-		"status_code":    res.StatusCode,
-		"provider":       res.Header.Get("X-MFP-Provider"),
-		"actual_model":   res.Header.Get("X-MFP-Actual-Model"),
-		"failover_count": res.Header.Get("X-MFP-Failover-Count"),
+	result := map[string]any{
+		"ok":          res.StatusCode >= 200 && res.StatusCode < 300,
+		"status_code": res.StatusCode,
 	}
+	logs := s.state.RequestLogs()
+	if len(logs) > 0 {
+		last := logs[0]
+		result["provider"] = last.ProviderID
+		result["actual_model"] = last.ActualModel
+		result["failover_count"] = last.FailoverCount
+	}
+	return result
 }
 
 func (s *Service) handleStats(w http.ResponseWriter, r *http.Request) {
@@ -1033,18 +1036,6 @@ func stripHopHeaders(in http.Header, trustAuthorization bool) http.Header {
 		}
 	}
 	return out
-}
-
-func addDebugHeaders(header http.Header, cfg core.AppConfig, virtualModel string, candidate core.ActualModelRef, failoverCount int, stickyHit bool, reason string) {
-	if !cfg.Proxy.DebugHeaders {
-		return
-	}
-	header.Set("X-MFP-Virtual-Model", virtualModel)
-	header.Set("X-MFP-Actual-Model", candidate.ModelID)
-	header.Set("X-MFP-Provider", candidate.ProviderID)
-	header.Set("X-MFP-Failover-Count", fmt.Sprintf("%d", failoverCount))
-	header.Set("X-MFP-Sticky-Hit", fmt.Sprintf("%t", stickyHit))
-	header.Set("X-MFP-Route-Reason", reason)
 }
 
 func writeNormalizedError(w http.ResponseWriter, n core.NormalizedError) {

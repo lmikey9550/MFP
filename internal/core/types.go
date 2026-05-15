@@ -117,7 +117,6 @@ func (c AppConfig) Clone() AppConfig {
 type ProxyConfig struct {
 	RequestTimeoutMS         int  `json:"request_timeout_ms"`
 	TrustAuthorizationHeader bool `json:"trust_authorization_header"`
-	DebugHeaders             bool `json:"debug_headers"`
 }
 
 type AdminConfig struct {
@@ -261,7 +260,6 @@ type RouteContext struct {
 	VirtualModel string
 	AgentID      string
 	SessionID    string
-	Debug        bool
 }
 
 type RoutePlan struct {
