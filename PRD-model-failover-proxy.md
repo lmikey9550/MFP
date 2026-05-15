@@ -421,7 +421,7 @@ services:
       - ./mfp-config:/app/config
       - ./mfp-data:/app/data
     environment:
-      - UPSTREAM_BASE_URL=http://provider.example.com  # 模型中转站地址
+      - UPSTREAM_BASE_URL=https://provider.example.com  # 模型中转站地址
       - ADMIN_PASSWORD=${MFP_ADMIN_PASSWORD}
       - UPSTREAM_API_KEY=${UPSTREAM_API_KEY}           # 中转站/上游 API Key
     restart: unless-stopped

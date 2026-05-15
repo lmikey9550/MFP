@@ -106,8 +106,8 @@
         <section class="panel">
           <div class="panel-head inline-head"><h2 data-i18n="provider.title">后端模型</h2><div class="toolbar"><select id="providerSelector" onchange="selectProvider()"></select><button class="ghost icon-button" onclick="newProvider()" title="New" aria-label="New">＋</button><button class="icon-button" onclick="syncCurrentProviderModels()" title="Sync" aria-label="Sync">↻</button></div></div>
           <div class="form-grid three">
-            <label><span data-i18n="fields.providerId">Provider ID</span><small data-i18n="help.providerId">上游服务的唯一标识。</small><input id="providerId" placeholder="mock-primary"></label>
-            <label><span data-i18n="fields.baseUrl">上游地址</span><small data-i18n="help.baseUrl">OpenAI-compatible base URL。</small><input id="providerBaseUrl" placeholder="http://host:4000/v1"></label>
+            <label><span data-i18n="fields.providerId">Provider ID</span><small data-i18n="help.providerId">上游服务的唯一标识。</small><input id="providerId" placeholder="example-provider"></label>
+            <label><span data-i18n="fields.baseUrl">上游地址</span><small data-i18n="help.baseUrl">OpenAI-compatible base URL。</small><input id="providerBaseUrl" placeholder="https://provider.example.com/v1"></label>
             <label><span data-i18n="fields.type">类型</span><select id="providerType"><option value="openai_compatible">openai_compatible</option></select></label>
           </div>
           <div class="form-grid four">

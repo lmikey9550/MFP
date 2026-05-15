@@ -4,46 +4,16 @@ services:
       context: .
       target: runtime
     image: mfp:local
-    container_name: mfp-preview
-    user: "0:0"
+    container_name: mfp
     environment:
       MFP_CONFIG: /app/configs/config.json
-      MOCK_PRIMARY_KEY: mock-primary-key
-      MOCK_BACKUP_KEY: mock-backup-key
+      PROVIDER_API_KEY: ${PROVIDER_API_KEY:-}
     ports:
       - "18320:18320"
       - "18321:18321"
     volumes:
       - mfp-data:/app/data
-      - ./configs/config.json:/app/configs/config.json
-    depends_on:
-      mock-primary:
-        condition: service_started
-      mock-backup:
-        condition: service_started
-    restart: unless-stopped
-
-  mock-primary:
-    image: mfp:local
-    container_name: mfp-mock-primary
-    entrypoint: ["/app/mock-provider"]
-    environment:
-      MOCK_PORT: 4000
-      MOCK_NAME: mock-primary
-      MOCK_MODELS: provider-model-a,provider-model-b
-      MOCK_FAIL_MODEL: provider-model-a
-      MOCK_FAIL_KEYWORD: "[failover]"
-    restart: unless-stopped
-
-  mock-backup:
-    image: mfp:local
-    container_name: mfp-mock-backup
-    entrypoint: ["/app/mock-provider"]
-    environment:
-      MOCK_PORT: 4000
-      MOCK_NAME: mock-backup
-      MOCK_MODELS: provider-model-c,provider-model-b-backup
-      MOCK_FAIL_MODEL: never-match
+      - ./configs/config.json:/app/configs/config.json:ro
     restart: unless-stopped
 
 volumes:

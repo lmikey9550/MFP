@@ -39,7 +39,6 @@ Use it to manage:
 A provider is an upstream API service, such as:
 
 - An OpenAI-compatible endpoint
-- A local mock provider
 - A third-party model aggregator
 - A self-hosted model service that accepts OpenAI-style `/v1/*` requests
 
@@ -62,7 +61,7 @@ MFP looks up the virtual model `smart`, chooses a backend candidate, rewrites `m
 
 ```json
 {
-  "model": "provider-model-a",
+  "model": "provider-model-id",
   "messages": [{"role": "user", "content": "hello"}]
 }
 ```
@@ -145,13 +144,7 @@ docker compose build
 
 ### 2.3 Local Go installation
 
-Start mock provider:
-
-```bash
-go run ./cmd/mock-provider
-```
-
-Start MFP:
+Start MFP with the production template:
 
 ```bash
 MFP_CONFIG=configs/dev.json go run ./cmd/mfp
@@ -161,14 +154,12 @@ Build binaries:
 
 ```bash
 go build -o build/mfp ./cmd/mfp
-go build -o build/mock-provider ./cmd/mock-provider
 ```
 
 Run built binaries:
 
 ```bash
 MFP_CONFIG=configs/config.json ./build/mfp
-MOCK_PORT=4000 ./build/mock-provider
 ```
 
 ## 3. First login and basic setup
@@ -462,20 +453,20 @@ MFP forwards the path unchanged. The backend decides whether it is valid.
 
 ## 7. Testing failover
 
-The bundled mock provider fails when the prompt contains `[failover]` and the selected backend model matches its configured fail model.
+Production failover testing requires at least two configured backend candidates. Temporarily disable, rate-limit, or invalidate the first candidate, then send a normal request to confirm MFP routes to the next available candidate.
 
 ```bash
 curl -s http://127.0.0.1:18320/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "smart",
-    "messages": [{"role": "user", "content": "please [failover]"}]
+    "messages": [{"role": "user", "content": "hello"}]
   }'
 ```
 
 Expected result:
 
-- First candidate fails.
+- First candidate fails because of your temporary test setup.
 - MFP records the failure.
 - MFP tries the next candidate.
 - Response comes from the backup backend model.

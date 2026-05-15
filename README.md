@@ -26,7 +26,6 @@ This keeps MFP intentionally simple: the backend provider decides which `/v1/*` 
 - **Basic congestion routing**: route away from overloaded first candidates when enabled.
 - **Health and request logs**: track model health, recent requests, attempts, failover counts, latency, and cooldown state.
 - **Admin console**: browser UI for providers, frontend models, rules, settings, health, logs, and testing.
-- **Mock provider**: bundled mock OpenAI-compatible provider for local demos and smoke tests.
 - **No database dependency**: JSON config plus file-backed runtime state.
 
 ## Quick start with Docker Compose
@@ -45,7 +44,7 @@ Default demo admin account:
 - Username: `admin`
 - Password: `change-me`
 
-The demo starts MFP plus two mock providers. The default frontend model is `smart`.
+The production compose stack starts only MFP. Set `PROVIDER_API_KEY` to your upstream credential before sending requests, or edit `configs/config.json` for your provider. The default frontend model is `smart`.
 
 ### Smoke test
 
@@ -62,33 +61,26 @@ Expected response includes the backend model, for example:
 
 ```json
 {
-  "model": "provider-model-a",
-  "provider": "mock-primary"
+  "model": "provider-model-id"
 }
 ```
 
-Test failover by including the mock failure keyword:
+To test failover in production, configure a second candidate provider/model and temporarily disable or invalidate the first candidate, then send the same request again.
 
 ```bash
 curl -s http://127.0.0.1:18320/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "smart",
-    "messages": [{"role": "user", "content": "please [failover]"}]
+    "messages": [{"role": "user", "content": "hello again"}]
   }'
 ```
 
-The response should come from the next available backend candidate.
+The response should come from the next available backend candidate if the first candidate fails.
 
 ## Run locally without Docker
 
-Start a mock provider:
-
-```bash
-go run ./cmd/mock-provider
-```
-
-In another terminal, start MFP:
+Start MFP with the production template:
 
 ```bash
 MFP_CONFIG=configs/dev.json go run ./cmd/mfp
@@ -105,7 +97,6 @@ Build binaries:
 
 ```bash
 go build -o build/mfp ./cmd/mfp
-go build -o build/mock-provider ./cmd/mock-provider
 ```
 
 ## Configuration overview
@@ -235,7 +226,6 @@ Common commands:
 
 ```bash
 go run ./cmd/mfp
-go run ./cmd/mock-provider
 gofmt -w ./cmd ./internal
 go test ./...
 go vet ./...
@@ -247,7 +237,6 @@ Project layout:
 ```text
 cmd/                 executables
   mfp/               main MFP service
-  mock-provider/     local mock provider
 internal/            private Go packages
   app/               application startup
   auth/              admin auth/session helpers

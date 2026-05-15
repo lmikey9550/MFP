@@ -26,7 +26,6 @@ MFP 刻意保持简单：后端供应商负责决定它支持哪些 `/v1/*` endp
 - **基础拥塞分流**：当首选候选模型并发过高时可切换到其他候选。
 - **健康与请求日志**：记录模型健康、最近请求、尝试链路、故障转移次数、延迟和冷却状态。
 - **管理台**：浏览器 UI 管理供应商、前端模型、规则、设置、健康、日志和测试。
-- **Mock provider**：内置本地 mock OpenAI 兼容供应商，方便 demo 和 smoke test。
 - **无需数据库**：JSON 配置加文件化运行时状态。
 
 ## 使用 Docker Compose 快速开始
@@ -45,7 +44,7 @@ docker compose up --build
 - 用户名：`admin`
 - 密码：`change-me`
 
-Demo 会启动 MFP 和两个 mock provider。默认前端模型是 `smart`。
+生产 compose 栈只启动 MFP。发送请求前请把 `PROVIDER_API_KEY` 设置为你的上游凭据，或编辑 `configs/config.json` 使用你的上游供应商。默认前端模型是 `smart`。
 
 ### Smoke test
 
@@ -62,33 +61,26 @@ curl -s http://127.0.0.1:18320/v1/chat/completions \
 
 ```json
 {
-  "model": "provider-model-a",
-  "provider": "mock-primary"
+  "model": "provider-model-id"
 }
 ```
 
-测试故障转移：
+生产环境测试故障转移时，请配置第二个候选 provider/model，并临时禁用或故意让第一个候选失败，然后再次发送请求。
 
 ```bash
 curl -s http://127.0.0.1:18320/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "smart",
-    "messages": [{"role": "user", "content": "please [failover]"}]
+    "messages": [{"role": "user", "content": "hello again"}]
   }'
 ```
 
-响应应来自下一个可用后端候选模型。
+如果第一个候选失败，响应应来自下一个可用后端候选模型。
 
 ## 不使用 Docker 本地运行
 
-启动 mock provider：
-
-```bash
-go run ./cmd/mock-provider
-```
-
-另开一个终端启动 MFP：
+使用生产模板启动 MFP：
 
 ```bash
 MFP_CONFIG=configs/dev.json go run ./cmd/mfp
@@ -105,7 +97,6 @@ go vet ./...
 
 ```bash
 go build -o build/mfp ./cmd/mfp
-go build -o build/mock-provider ./cmd/mock-provider
 ```
 
 ## 配置概览
@@ -235,7 +226,6 @@ MFP 代理 `POST /v1/*`。例如：
 
 ```bash
 go run ./cmd/mfp
-go run ./cmd/mock-provider
 gofmt -w ./cmd ./internal
 go test ./...
 go vet ./...
@@ -247,7 +237,6 @@ docker compose build
 ```text
 cmd/                 可执行入口
   mfp/               MFP 主服务
-  mock-provider/     本地 mock provider
 internal/            私有 Go 包
   app/               应用启动
   auth/              管理员认证和会话

@@ -1,9 +1,9 @@
 {
   "api_listen_addr": ":18320",
   "admin_listen_addr": ":18321",
-  "data_dir": "/app/data",
+  "data_dir": "data",
   "proxy": {
-    "request_timeout_ms": 30000,
+    "request_timeout_ms": 120000,
     "trust_authorization_header": false,
     "max_body_bytes": 67108864
   },
@@ -20,42 +20,18 @@
   },
   "providers": [
     {
-      "id": "mock-primary",
+      "id": "example-provider",
       "type": "openai_compatible",
-      "base_url": "http://mock-primary:4000/v1",
-      "credential_ref": "mock_primary",
-      "credential_env": "MOCK_PRIMARY_KEY",
+      "base_url": "https://provider.example.com/v1",
+      "credential_ref": "example_credential",
+      "credential_env": "PROVIDER_API_KEY",
       "headers_template": {},
-      "timeout_ms": 30000,
+      "timeout_ms": 120000,
       "enabled": true,
       "models": [
         {
-          "id": "provider-model-a",
-          "label": "provider-model-a"
-        },
-        {
-          "id": "provider-model-b",
-          "label": "provider-model-b"
-        }
-      ]
-    },
-    {
-      "id": "mock-backup",
-      "type": "openai_compatible",
-      "base_url": "http://mock-backup:4000/v1",
-      "credential_ref": "mock_backup",
-      "credential_env": "MOCK_BACKUP_KEY",
-      "headers_template": {},
-      "timeout_ms": 30000,
-      "enabled": true,
-      "models": [
-        {
-          "id": "provider-model-c",
-          "label": "Provider Model C"
-        },
-        {
-          "id": "provider-model-b-backup",
-          "label": "Provider Model B Backup"
+          "id": "provider-model-id",
+          "label": "Provider Model"
         }
       ]
     }
@@ -63,13 +39,13 @@
   "virtual_models": [
     {
       "id": "smart",
-      "display_name": "智能模型",
-      "description": "Docker 预览测试链路",
+      "display_name": "Smart Model",
+      "description": "Default placeholder OpenAI-compatible route",
       "sticky": true,
       "sticky_scope": "agent",
       "sticky_timeout_minutes": 30,
       "failover_strategy": "sequential",
-      "max_attempts": 3,
+      "max_attempts": 1,
       "congestion": {
         "enabled": true,
         "window_seconds": 10,
@@ -79,78 +55,15 @@
       },
       "candidates": [
         {
-          "provider_id": "mock-primary",
-          "model_id": "provider-model-a",
-          "label": "provider-model-a",
+          "provider_id": "example-provider",
+          "model_id": "provider-model-id",
+          "label": "Provider Model",
           "priority": 1,
           "weight": 100,
           "max_retry": 1,
           "enabled": true
-        },
-        {
-          "provider_id": "mock-backup",
-          "model_id": "provider-model-c",
-          "label": "Provider Model C",
-          "priority": 2,
-          "weight": 80,
-          "max_retry": 1,
-          "enabled": true
-        },
-        {
-          "provider_id": "mock-primary",
-          "model_id": "provider-model-b",
-          "label": "provider-model-b",
-          "priority": 3,
-          "weight": 60,
-          "max_retry": 1,
-          "enabled": true
         }
       ]
-    }
-  ],
-  "error_rules": [
-    {
-      "id": "builtin-rate-limit",
-      "name": "Rate limit",
-      "match": {
-        "status_code": 429,
-        "category": "rate_limit"
-      },
-      "action": "failover",
-      "cooldown_seconds": 60,
-      "is_builtin": true,
-      "enabled": true,
-      "priority": 10,
-      "health_impact": "credential"
-    },
-    {
-      "id": "builtin-bad-request",
-      "name": "Bad request",
-      "match": {
-        "status_code": 400
-      },
-      "action": "reject",
-      "cooldown_seconds": 0,
-      "is_builtin": true,
-      "enabled": true,
-      "priority": 70,
-      "health_impact": "none"
-    },
-    {
-      "id": "builtin-upstream",
-      "name": "Upstream error",
-      "match": {
-        "status_code_range": [
-          500,
-          599
-        ]
-      },
-      "action": "failover",
-      "cooldown_seconds": 45,
-      "is_builtin": true,
-      "enabled": true,
-      "priority": 40,
-      "health_impact": "provider"
     }
   ]
 }

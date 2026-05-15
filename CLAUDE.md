@@ -7,11 +7,10 @@ Go service implementing a Model Failover Proxy with OpenAI-compatible API endpoi
 ## Common commands
 
 - Run service: `go run ./cmd/mfp`
-- Run mock provider: `go run ./cmd/mock-provider`
 - Test: `go test ./...`
 - Format: `gofmt -w ./cmd ./internal`
 - Vet: `go vet ./...`
-- Build binaries: `go build -o build/mfp ./cmd/mfp` and `go build -o build/mock-provider ./cmd/mock-provider`
+- Build binary: `go build -o build/mfp ./cmd/mfp`
 
 ## Structure
 
