@@ -96,7 +96,7 @@
             <label><span data-i18n="fields.congestionCooldown">拥塞冷却</span><small data-i18n="help.seconds">单位：秒。</small><input id="vmCongestionCooldown" type="number" min="0"></label>
           </div>
           <label><span data-i18n="fields.congestionStrategy">拥塞策略</span><select id="vmCongestionStrategy"><option value="least_loaded">least_loaded</option><option value="round_robin">round_robin</option><option value="random">random</option></select></label>
-          <div class="panel-head compact"><h3 data-i18n="vm.candidates">后端模型</h3><button class="ghost" onclick="addCandidateRow()" data-i18n="actions.addCandidate">添加后端模型</button></div>
+          <div class="panel-head compact"><h3 data-i18n="vm.candidates">后端模型</h3><button class="ghost" onclick="addCandidateRow()" data-i18n="actions.addCandidate">添加</button></div>
           <div class="table-wrap"><table id="vmCandidatesTable" class="mini-table"></table></div>
           <div class="actions"><button onclick="saveVirtualModel()" data-i18n="actions.saveVM">保存</button><button class="danger" onclick="deleteVirtualModel()" data-i18n="actions.deleteVM">删除</button></div>
         </section>
