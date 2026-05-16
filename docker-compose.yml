@@ -13,7 +13,7 @@ services:
       - "18321:18321"
     volumes:
       - mfp-data:/app/data
-      - ./configs/config.json:/app/configs/config.json:ro
+      - ./configs/config.json:/app/configs/config.json
     restart: unless-stopped
 
 volumes:
