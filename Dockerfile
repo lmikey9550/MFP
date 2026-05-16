@@ -6,12 +6,10 @@ COPY cmd ./cmd
 COPY internal ./internal
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/mfp ./cmd/mfp
 
-FROM gcr.io/distroless/static-debian12:nonroot AS runtime
+FROM gcr.io/distroless/static-debian12 AS runtime
 
 WORKDIR /app
 COPY --from=build /out/mfp /app/mfp
-COPY --chown=nonroot:nonroot configs /app/configs
-
-USER nonroot:nonroot
+COPY configs /app/configs
 EXPOSE 18320 18321
 ENTRYPOINT ["/app/mfp"]
