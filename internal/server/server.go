@@ -76,6 +76,10 @@ func New(cfgPath string, cfg core.AppConfig, hub *state.Hub, logger *log.Logger)
 
 func (s *Service) APIServer() *http.Server {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/models", s.handleClientModels)
+	mux.HandleFunc("/models/", s.handleClientModelByID)
+	mux.HandleFunc("/v1/models", s.handleClientModels)
+	mux.HandleFunc("/v1/models/", s.handleClientModelByID)
 	mux.HandleFunc("/v1/", s.handleProxy)
 	return &http.Server{
 		Addr:              s.configRuntime.Snapshot().APIListenAddr,
@@ -117,6 +121,42 @@ func (s *Service) AdminServer() *http.Server {
 		Handler:           loggingMiddleware(s.logger, mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
+}
+
+func (s *Service) handleClientModels(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method_not_allowed", "only GET is supported")
+		return
+	}
+	cfg := s.configRuntime.Snapshot()
+	type model struct {
+		ID      string `json:"id"`
+		Object  string `json:"object"`
+		Created int64  `json:"created"`
+		OwnedBy string `json:"owned_by"`
+	}
+	models := make([]model, 0, len(cfg.VirtualModels))
+	for _, vm := range cfg.VirtualModels {
+		models = append(models, model{ID: vm.ID, Object: "model", OwnedBy: "mfp"})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"object": "list", "data": models})
+}
+
+func (s *Service) handleClientModelByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method_not_allowed", "only GET is supported")
+		return
+	}
+	modelID := strings.TrimPrefix(r.URL.Path, "/v1/models/")
+	if modelID == r.URL.Path {
+		modelID = strings.TrimPrefix(r.URL.Path, "/models/")
+	}
+	modelID = normalizeVirtualModelID(modelID)
+	if _, ok := findVirtualModel(s.configRuntime.Snapshot().VirtualModels, modelID); !ok {
+		writeJSONError(w, http.StatusNotFound, "model_not_found", "virtual model not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"id": modelID, "object": "model", "owned_by": "mfp"})
 }
 
 func (s *Service) handleProxy(w http.ResponseWriter, r *http.Request) {

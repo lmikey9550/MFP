@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-05-16
+
+- Added OpenAI-compatible client model discovery endpoints at `GET /v1/models`, `GET /models`, `GET /v1/models/{id}`, and `GET /models/{id}`.
+
 ## 2026-05-15
 
 - Fixed frontend model candidate dropdowns resetting saved backend models to the first option.

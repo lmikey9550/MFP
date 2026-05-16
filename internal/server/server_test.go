@@ -92,6 +92,69 @@ func TestProxyFailoverAcrossProviders(t *testing.T) {
 	}
 }
 
+func TestClientModelsListsVirtualModels(t *testing.T) {
+	cfg := proxyTestConfig(t, "http://127.0.0.1:1", []core.ActualModelRef{{ProviderID: "p1", ModelID: "m1", Enabled: true, MaxRetry: 1}})
+	cfg.VirtualModels = append(cfg.VirtualModels, core.VirtualModel{ID: "fast"})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+
+	for _, path := range []string{"/v1/models", "/models"} {
+		t.Run(path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+			res := rec.Result()
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("expected 200, got %d", res.StatusCode)
+			}
+			var payload struct {
+				Object string `json:"object"`
+				Data   []struct {
+					ID      string `json:"id"`
+					Object  string `json:"object"`
+					OwnedBy string `json:"owned_by"`
+				} `json:"data"`
+			}
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload.Object != "list" || len(payload.Data) != 2 || payload.Data[0].ID != "smart" || payload.Data[1].ID != "fast" {
+				t.Fatalf("unexpected models payload: %#v", payload)
+			}
+		})
+	}
+}
+
+func TestClientModelsRetrievesVirtualModel(t *testing.T) {
+	cfg := proxyTestConfig(t, "http://127.0.0.1:1", []core.ActualModelRef{{ProviderID: "p1", ModelID: "m1", Enabled: true, MaxRetry: 1}})
+	hub, err := state.NewHub(cfg.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := New(t.TempDir()+"/test.json", cfg, hub, log.New(io.Discard, "", 0))
+	rec := httptest.NewRecorder()
+	service.APIServer().Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/models/mfp/smart", nil))
+	res := rec.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", res.StatusCode)
+	}
+	var payload struct {
+		ID      string `json:"id"`
+		Object  string `json:"object"`
+		OwnedBy string `json:"owned_by"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.ID != "smart" || payload.Object != "model" || payload.OwnedBy != "mfp" {
+		t.Fatalf("unexpected model payload: %#v", payload)
+	}
+}
+
 func TestProxyRequiresVirtualModelAPIKey(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
