@@ -2,6 +2,7 @@
 
 ## 2026-05-16
 
+- Added dashboard auto-refresh controls for 5s, 15s, 30s, 60s, or off.
 - Added OpenAI-compatible client model discovery endpoints at `GET /v1/models`, `GET /models`, `GET /v1/models/{id}`, and `GET /models/{id}`.
 
 ## 2026-05-15

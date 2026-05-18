@@ -50,6 +50,7 @@
 
     <main>
       <section id="tab-dashboard" class="tab-sheet active">
+        <div class="panel dashboard-toolbar"><h2 data-i18n="dashboard.title">看板</h2><div class="toolbar"><label><span data-i18n="fields.autoRefresh">自动刷新</span><select id="dashboardAutoRefresh" onchange="setDashboardAutoRefresh(this.value)"><option value="0" data-i18n="refresh.off">不刷新</option><option value="5">5s</option><option value="15">15s</option><option value="30">30s</option><option value="60">60s</option></select></label><button class="ghost" onclick="loadAll()" data-i18n="actions.refresh">刷新</button></div></div>
         <div class="metric-grid">
           <article class="metric-card"><span data-i18n="metrics.requests">请求总数</span><strong id="requests_total">-</strong></article>
           <article class="metric-card"><span data-i18n="metrics.success">成功请求</span><strong id="success_total">-</strong></article>
@@ -58,7 +59,7 @@
         </div>
         <div class="grid two">
           <section class="panel">
-            <div class="panel-head"><h2 data-i18n="dashboard.health">模型健康</h2><button class="ghost" onclick="loadAll()" data-i18n="actions.refresh">刷新</button></div>
+            <div class="panel-head"><h2 data-i18n="dashboard.health">模型健康</h2></div>
             <div id="statusCards" class="card-list"></div>
             <div class="table-wrap"><table id="healthTable"></table></div>
           </section>
